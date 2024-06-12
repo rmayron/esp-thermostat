@@ -1,5 +1,5 @@
 substitutions:
-  target_switch: switch.shellyplus1pm_80646fe4a0d4_switch_0
+  target_switch: < your switch entity ID >
 
 esphome:
   name: thermostat-01
@@ -13,15 +13,15 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: "bICYXYwg6gZe4g5g848rUApn2RsBXxsZSWfIKk3fKV8="
+    key: "your key"
 
 ota:
-  password: "18e1adf339252cba8ac4df7a0f1ca26f"
+  password: "your password"
 
 wifi:
   networks:
-  - ssid: "deviceaversa"
-    password: "MyI0TN3t!"
+  - ssid: "wifi SSID"
+    password: "wifi password"
   output_power: 8.5
 
 
