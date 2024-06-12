@@ -1,0 +1,239 @@
+substitutions:
+  target_switch: switch.shellyplus1pm_80646fe4a0d4_switch_0
+
+esphome:
+  name: thermostat-01
+  platform: ESP8266
+  board: d1_mini
+
+# Enable logging
+logger:
+  level: WARN
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "bICYXYwg6gZe4g5g848rUApn2RsBXxsZSWfIKk3fKV8="
+
+ota:
+  password: "18e1adf339252cba8ac4df7a0f1ca26f"
+
+wifi:
+  networks:
+  - ssid: "deviceaversa"
+    password: "MyI0TN3t!"
+  output_power: 8.5
+
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Thermostat-01 Fallback Hotspot"
+    password: "TYijLp18qa9x"
+
+captive_portal:
+
+# i2c configuration entry
+i2c:
+  sda: D1
+  scl: D2
+  scan: False
+  frequency: 800kHz
+
+
+switch:
+  - platform: template
+    id: heat_idle
+    name: heat_idle
+    optimistic: True
+    on_turn_on: 
+      then:
+        - climate.control: 
+            id: this_thermostat
+            mode: HEAT
+    on_turn_off: 
+      then:
+        - climate.control: 
+            id: this_thermostat
+            mode: "OFF"
+
+  - platform: template
+    id: ha_switch_control
+    name: ha_switch_control
+    optimistic: True
+    on_turn_on: 
+      then:
+        - homeassistant.service:
+            service: homeassistant.turn_on 
+            data: 
+              entity_id: $target_switch
+    on_turn_off: 
+      then:
+        - homeassistant.service: 
+            service: homeassistant.turn_off
+            data: 
+              entity_id: $target_switch  
+  
+# BME280 configuration entry
+sensor:
+  - platform: bmp280
+    temperature:
+      name: "thermostat-01 Temperature"
+      oversampling: 16x
+      id: temp
+    pressure:
+      name: "thermostat-01 Pressure"
+    #humidity:
+    #  name: "thermostat-01 Humidity"
+    # Address is not default!
+    address: 0x76
+    update_interval: 60s
+
+# get Corridor Thremostat temp from HA
+  - platform: homeassistant
+    entity_id: climate.corridor_heater_thermostat
+    attribute: temperature
+    id: set_temperature 
+    internal: true
+
+  - platform: rotary_encoder
+    id: dial
+    pin_a:
+      number: D8
+      #inverted: True
+      mode: 
+        #pullup: True
+        input: True
+    pin_b: 
+      number: D7
+      #inverted: True
+      mode: 
+        #pullup: True
+        input: True
+    on_clockwise:
+      - climate.control:
+          id: this_thermostat
+          target_temperature: !lambda "return id(this_thermostat).target_temperature + 0.1;"
+    on_anticlockwise:
+      - climate.control: 
+          id: this_thermostat
+          target_temperature: !lambda "return id(this_thermostat).target_temperature - 0.1;"        
+
+
+binary_sensor:
+#   get the heater power state
+  - platform: homeassistant
+    id: corridor_heater_state
+    entity_id: $target_switch
+    internal: true
+
+#   control the thermostat using the Encoder switch
+  - platform: gpio
+    pin:
+      number: D5
+     # inverted: True
+      mode: 
+       # pullup: True
+        input: True
+    id: thermostat_control_sw
+    name: thermostat_control_sw
+    on_click:
+    - min_length: 50ms
+      max_length: 500ms
+      then:
+        - switch.toggle: heat_idle
+    - min_length: 500ms
+      max_length: 1500ms
+      then:
+        - switch.toggle: ha_switch_control  
+
+animation:
+  - file: "_icons/fan.gif"
+    id: ani_fan
+  - file: "_icons/fire.gif"
+    id: flame
+
+image:
+  - file: "_icons/home-thermometer.png"
+    id: home_thermometer
+  - file: "_icons/arrow-left-circle-outline.png"
+    id: arrow_left
+  - file: "_icons/arrow-right-circle-outline.png"
+    id: arrow_right
+  - file: "_icons/lightbulb-on-outline.png"
+    id: bulb
+
+font:
+#  - file: './_fonts/OpenSans-Regular.ttf'
+#    id: font1
+#    size: 36
+#  - file: './_fonts/OpenSans-Regular.ttf'
+#    id: font2
+#    size: 24
+  - file: "_fonts/nasalization.ttf"
+    id: font1
+    size: 12
+  - file: "_fonts/refsan.ttf"
+    id: font2
+    size: 12
+  - file: "_fonts/refsan.ttf"
+    id: font3
+    size: 14
+  - file: "_fonts/refsan.ttf"
+    id: font4
+    size: 16
+
+
+climate:
+  - platform: thermostat
+    min_heating_off_time: 0s
+    min_heating_run_time: 0s
+    min_idle_time: 0s
+    visual:
+      min_temperature: 15 °C
+      max_temperature: 30 °C
+    name: "corridor ESP Thermostat"
+    id: this_thermostat
+    sensor: temp
+
+    preset: 
+      - name: corridor
+        default_target_temperature_low: 19 °C
+        mode: HEAT
+
+    heat_action: 
+      - homeassistant.service:
+          service: homeassistant.turn_on
+          data:
+            entity_id: $target_switch
+      
+    idle_action: 
+      - homeassistant.service:
+          service: homeassistant.turn_off
+          data:
+            entity_id: $target_switch
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    #address: 0x3C
+    external_vcc: false
+    lambda: |-
+      // Print temperature
+      it.printf(0,0, id(font2), TextAlign::LEFT, "Current temp: %.1f°",id(temp).state);
+      it.printf(0,20, id(font2), TextAlign::LEFT, "Set temp: ");
+      it.printf(128,20, id(font4), TextAlign::RIGHT, "%.1f°", id(this_thermostat).target_temperature);
+      if (id(this_thermostat).mode != 0) {
+        it.image(0,40,id(home_thermometer));
+      }
+      if (id(corridor_heater_state).state) {
+        it.image(20,40,id(flame));
+      }
+      if (id(this_thermostat).action == 0) {
+        it.printf(128,40, id(font3), TextAlign::RIGHT, "Off");
+      }
+      if (id(this_thermostat).action == 4) {
+        it.printf(128,40, id(font3), TextAlign::RIGHT, "Idle");
+      }
+      if (id(this_thermostat).action == 3) {
+        it.printf(128,40, id(font3), TextAlign::RIGHT, "Heating");
+      }
