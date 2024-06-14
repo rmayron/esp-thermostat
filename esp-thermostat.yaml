@@ -136,12 +136,12 @@ binary_sensor:
         input: True
     id: thermostat_control_sw
     name: thermostat_control_sw
-    on_click:
+    on_click:    #toggle the thermostat on or off (when on it will go to Heat or idle mode based on the set temperature) 
     - min_length: 50ms
       max_length: 500ms
       then:
-        - switch.toggle: heat_idle
-    - min_length: 500ms
+        - switch.toggle: heat_idle  
+    - min_length: 500ms   # on long click, toggle the state of the heater WiFI switch - turn the heater on regardless of the thenmostat settings
       max_length: 1500ms
       then:
         - switch.toggle: ha_switch_control  
