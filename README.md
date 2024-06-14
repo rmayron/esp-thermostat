@@ -4,7 +4,7 @@ This is a ESPHome based thermostat for Home Assistant using:
  - HW-040 encoder module
  - SSD1306 mini display
 
-the thermostat controls an existing switch you should already have configured in Home Assistant.   You can add a relay to the Arduino if you want an all in one solution.
+the thermostat controls an existing switch you should already have configured in Home Assistant and that controls a heater.   You can add a relay to the Arduino if you want an all in one solution.
 
 please note that you may need to reverse the polarity of the encoder module for this work.  I needed to, and this could be due to how the pullup resistors work (or not) in the D1-mini.
 
